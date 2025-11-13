@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mindful Moments - Meditation Helper</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- MediaPipe libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+</head>
+<body>
+    <div class="container">
+        <nav>
+            <div class="logo">
+                <i class="fas fa-spa"></i>
+                <span>Mindful Moments</span>
+            </div>
+
+            <!-- Mobile nav toggle (CSS driven). Safe to add: does not change existing .nav-links -->
+            <input type="checkbox" id="nav-checkbox" class="nav-checkbox" aria-hidden />
+            <label for="nav-checkbox" class="nav-toggle" aria-hidden>
+                <i class="fas fa-bars"></i>
+            </label>
+
+            <div class="nav-links">
+                <a href="#" class="active" data-page="home">Home</a>
+                <a href="#" data-page="instructions">Instructions</a>
+                <a href="#" data-page="settings">Settings</a>
+                <a href="#" data-page="meditation">Meditation</a>
+                <a href="#" data-page="summary">Summary</a>
+            </div>
+
+            <!-- Theme toggle button (keeps everything else same) -->
+            <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme">
+                <i class="fas fa-sun"></i>
+            </button>
+        </nav>
+
+        <!-- Home Page -->
+        <div id="home" class="page active">
+            <div class="hero">
+                <h1>Find Your Inner Peace</h1>
+                <p>Discover the power of Gyan Mudra meditation with our AI-powered guidance system. Enhance your focus, reduce stress, and achieve deeper states of mindfulness.</p>
+                <a href="#" class="btn" data-page="settings">Start Meditating</a>
+            </div>
+
+            <div class="features">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-hands"></i>
+                    </div>
+                    <h3>Gyan Mudra Detection</h3>
+                    <p>Our AI system detects your hand position to ensure you're performing the Gyan Mudra correctly for optimal meditation benefits.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-eye"></i>
+                    </div>
+                    <h3>Eye State Monitoring</h3>
+                    <p>Track whether your eyes are open or closed to maintain the proper meditative state throughout your session.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-smile"></i>
+                    </div>
+                    <h3>Emotion Analysis</h3>
+                    <p>Monitor your emotional state to help maintain a neutral, focused mindset during meditation.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3>Progress Tracking</h3>
+                    <p>View detailed analytics of your meditation sessions to track improvement over time.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Instructions Page -->
+        <div id="instructions" class="page">
+            <div class="instructions">
+                <h2>How to Practice Gyan Mudra Meditation</h2>
+
+                <div class="instruction-card">
+                    <div class="instruction-icon">
+                        <i class="fas fa-hands"></i>
+                    </div>
+                    <div class="instruction-content">
+                        <h3>Form the Gyan Mudra</h3>
+                        <p>Join the tip of your thumb and index finger, keeping the other three fingers straight but relaxed. This hand gesture symbolizes knowledge and wisdom.</p>
+                    </div>
+                </div>
+
+                <div class="instruction-card">
+                    <div class="instruction-icon">
+                        <i class="fas fa-couch"></i>
+                    </div>
+                    <div class="instruction-content">
+                        <h3>Find a Comfortable Position</h3>
+                        <p>Sit in a comfortable position with your spine straight. You can sit on a chair or cross-legged on the floor. Rest your hands on your knees with palms facing up.</p>
+                    </div>
+                </div>
+
+                <div class="instruction-card">
+                    <div class="instruction-icon">
+                        <i class="fas fa-eye"></i>
+                    </div>
+                    <div class="instruction-content">
+                        <h3>Close Your Eyes</h3>
+                        <p>Gently close your eyes to minimize visual distractions and turn your attention inward.</p>
+                    </div>
+                </div>
+
+                <div class="instruction-card">
+                    <div class="instruction-icon">
+                        <i class="fas fa-wind"></i>
+                    </div>
+                    <div class="instruction-content">
+                        <h3>Focus on Your Breath</h3>
+                        <p>Bring your attention to your natural breathing pattern. Observe the inhalation and exhalation without trying to control it.</p>
+                    </div>
+                </div>
+
+                <div class="instruction-card">
+                    <div class="instruction-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="instruction-content">
+                        <h3>Maintain the Practice</h3>
+                        <p>Start with 5-10 minutes daily and gradually increase the duration as you become more comfortable with the practice.</p>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <a href="#" class="btn" data-page="settings">Configure Session</a>
+                    <a href="#" class="btn btn-secondary" data-page="home">Back to Home</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Page -->
+        <div id="settings" class="page">
+            <div class="settings-container">
+                <h2>Configure Your Meditation Session</h2>
+
+                <div class="settings-card">
+                    <div class="settings-group">
+                        <h3>Session Duration</h3>
+                        <div class="settings-row">
+                            <div class="settings-label">Total Duration (minutes)</div>
+                            <input type="number" id="session-duration" class="settings-input" min="1" max="60" value="5" />
+                        </div>
+                        <div class="settings-note">Recommended: 5-20 minutes for beginners</div>
+                    </div>
+
+                    <div class="settings-group">
+                        <h3>Breathing Pattern</h3>
+                        <div class="settings-row">
+                            <div class="settings-label">Breathe In (seconds)</div>
+                            <input type="number" id="breathe-in" class="settings-input" min="2" max="10" value="4" />
+                        </div>
+                        <div class="settings-row">
+                            <div class="settings-label">Breathe Out (seconds)</div>
+                            <input type="number" id="breathe-out" class="settings-input" min="2" max="10" value="6" />
+                        </div>
+                        <div class="settings-note">Standard pattern: 4 seconds in, 6 seconds out for relaxation</div>
+                    </div>
+
+                    <div class="settings-group">
+                        <h3>Guidance Preferences</h3>
+                        <div class="settings-row">
+                            <div class="settings-label">Voice Guidance</div>
+                            <select id="voice-guidance" class="settings-input">
+                                <option value="enabled">Enabled</option>
+                                <option value="minimal">Minimal</option>
+                                <option value="disabled">Disabled</option>
+                            </select>
+                        </div>
+                        <div class="settings-note">Voice guidance helps maintain proper posture during meditation</div>
+                    </div>
+
+                    <!-- Background Music Settings -->
+                    <div class="settings-group">
+                        <h3>Background Music</h3>
+                        <div class="settings-row">
+                            <div class="settings-label">Music Volume</div>
+                            <input type="range" id="music-volume" class="settings-input" min="0" max="100" value="30" />
+                            <span id="volume-display">30%</span>
+                        </div>
+                        <div class="settings-note">Upload your own meditation track for a personalized experience</div>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <a href="#" class="btn" id="save-settings" data-page="meditation">Start Meditation</a>
+                    <a href="#" class="btn btn-secondary" data-page="home">Back to Home</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Meditation Page -->
+        <div id="meditation" class="page">
+            <div class="meditation-container">
+                <div class="video-container">
+                    <h3>Meditation Session</h3>
+                    <div class="video-placeholder">
+                        <video id="webcam" autoplay playsinline></video>
+                        <i class="fas fa-video" id="video-icon"></i>
+                    </div>
+
+                    <div class="status-container">
+                        <div class="status-item">
+                            <div class="status-label">Mudra</div>
+                            <div class="status-value status-warning" id="mudra-status">Not Detected</div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-label">Eyes</div>
+                            <div class="status-value status-warning" id="eyes-status">Open</div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-label">Emotion</div>
+                            <div class="status-value status-warning" id="emotion-status">Neutral</div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-label">Breathing</div>
+                            <div class="status-value status-warning" id="breathing-status">Inactive</div>
+                        </div>
+                    </div>
+
+                    <div class="breathing-indicator" id="breathing-indicator"></div>
+
+                    <div class="timer" id="timer">05:00</div>
+
+                    <div class="meditation-controls">
+                        <button class="btn" id="start-btn">
+                            <i class="fas fa-play"></i> Start
+                        </button>
+                        <button class="btn btn-secondary" id="pause-btn">
+                            <i class="fas fa-pause"></i> Pause
+                        </button>
+                        <button class="btn btn-secondary" id="stop-btn">
+                            <i class="fas fa-stop"></i> Stop
+                        </button>
+                        <button class="btn" id="end-btn" data-page="summary">
+                            <i class="fas fa-chart-bar"></i> Summary
+                        </button>
+                    </div>
+                </div>
+
+                <div class="stats-container">
+                    <h3>Session Statistics</h3>
+                    <div class="chart-container">
+                        <canvas id="confidenceChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="emotionChart"></canvas>
+                    </div>
+                    <div class="session-info">
+                        <h4>Session Parameters</h4>
+                        <div id="session-params">Duration: 5 min | Breathing: 4s in / 6s out</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Music Controls -->
+            <div class="music-controls">
+                <h3>Background Music</h3>
+                <div class="music-upload-section">
+                    <input type="file" id="music-upload" accept="audio/*" class="music-upload-input" />
+                    <label for="music-upload" class="music-upload-label">
+                        <i class="fas fa-upload"></i> Upload Your Track
+                    </label>
+                    <div id="music-file-name" class="music-file-name">No file selected</div>
+                </div>
+                <div class="music-player-controls">
+                    <button class="music-control-btn" id="play-music-btn">
+                        <i class="fas fa-play"></i> Play Music
+                    </button>
+                    <button class="music-control-btn" id="pause-music-btn">
+                        <i class="fas fa-pause"></i> Pause Music
+                    </button>
+                    <div class="volume-control">
+                        <label for="meditation-volume">Volume:</label>
+                        <input type="range" id="meditation-volume" class="volume-slider" min="0" max="100" value="30" />
+                        <span id="meditation-volume-display">30%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Voice-first meditation components -->
+            <div class="voice-history-container">
+                <h3>Voice Command History</h3>
+                <div id="voice-history" class="voice-history"></div>
+            </div>
+
+            <div class="tips-container">
+                <h3>Quick Tips</h3>
+                <ul>
+                    <li>Allow camera access on your browser.</li>
+                    <li>Use headphones for clearer spoken guidance.</li>
+                    <li>If the assistant speaks too often, increase the guidance cooldown in the settings (in code).</li>
+                    <li>Upload your favorite meditation track for background music.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Summary Page -->
+        <div id="summary" class="page">
+            <div class="summary-container">
+                <div class="summary-header">
+                    <h2>Meditation Session Summary</h2>
+                    <p id="session-date">Your meditation journey on October 15, 2023</p>
+                </div>
+
+                <div class="summary-stats">
+                    <div class="summary-stat">
+                        <div class="summary-stat-value" id="total-time">0:00</div>
+                        <div class="summary-stat-label">Total Time</div>
+                    </div>
+                    <div class="summary-stat">
+                        <div class="summary-stat-value" id="mudra-accuracy">0%</div>
+                        <div class="summary-stat-label">Mudra Accuracy</div>
+                    </div>
+                    <div class="summary-stat">
+                        <div class="summary-stat-value" id="focus-time">0%</div>
+                        <div class="summary-stat-label">Focus Time</div>
+                    </div>
+                    <div class="summary-stat">
+                        <div class="summary-stat-value" id="sessions-week">1</div>
+                        <div class="summary-stat-label">Sessions This Week</div>
+                    </div>
+                </div>
+
+                <div class="summary-charts">
+                    <h3>Session Analytics</h3>
+                    <div class="chart-row">
+                        <div class="chart-box">
+                            <canvas id="summaryConfidenceChart"></canvas>
+                        </div>
+                        <div class="chart-box">
+                            <canvas id="summaryEmotionChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="insights">
+                    <h3>Session Insights</h3>
+                    <div id="insights-content">
+                        <!-- Dynamic insights will be inserted here -->
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <a href="#" class="btn" id="meditate-again-btn" data-page="meditation">Meditate Again</a>
+                    <a href="#" class="btn btn-secondary" data-page="home">Back to Home</a>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Mindful Moments | Find Your Inner Peace</p>
+        </footer>
+    </div>
+
+    <!-- Background Music Element -->
+    <audio id="background-music" loop></audio>
+
+    <!-- keep your main script reference (unchanged) -->
+    <script src="script.js"></script>
+
+    <!-- Small inline script for theme toggle & nav checkbox persistence.
+         This is safe: it only toggles a body class and stores preference.
+         It won't alter any existing variables or class names your script relies on. -->
+    <script>
+        (function () {
+            const themeBtn = document.getElementById('theme-toggle');
+            const body = document.body;
+            const navCheckbox = document.getElementById('nav-checkbox');
+
+            // Initialize theme from localStorage
+            const saved = localStorage.getItem('mm-theme');
+            if (saved === 'light') {
+                body.classList.add('light-mode');
+                themeBtn.innerHTML = '<i class="fas fa-moon"></i>';
+            } else {
+                body.classList.remove('light-mode');
+                themeBtn.innerHTML = '<i class="fas fa-sun"></i>';
+            }
+
+            // Toggle theme on button click
+            themeBtn.addEventListener('click', () => {
+                const isLight = body.classList.toggle('light-mode');
+                localStorage.setItem('mm-theme', isLight ? 'light' : 'dark');
+                themeBtn.innerHTML = isLight ? '<i class="fas fa-moon"></i>' : '<i class="fas fa-sun"></i>';
+            });
+
+            // Keep mobile nav checkbox unchecked on orientation/resize to avoid stuck states
+            window.addEventListener('resize', () => {
+                if (window.innerWidth > 768 && navCheckbox.checked) navCheckbox.checked = false;
+            });
+
+            // Close nav when a link is clicked (mobile)
+            document.querySelectorAll('.nav-links a').forEach(a => {
+                a.addEventListener('click', () => {
+                    if (navCheckbox.checked) navCheckbox.checked = false;
+                });
+            });
+        })();
+    </script>
+</body>
+</html>
