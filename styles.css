@@ -1051,3 +1051,47 @@ a:focus-visible {
 .overlay.active {
     display: block;
 }
+/* Add these to your existing CSS */
+
+/* Fullscreen video styles */
+.video-placeholder.fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 9999;
+    border-radius: 0;
+    background: #000;
+    padding: 0;
+}
+
+.video-placeholder.fullscreen video {
+    border-radius: 0;
+    object-fit: contain;
+    width: 100%;
+    height: 100%;
+}
+
+/* Fullscreen button positioning */
+.btn-fullscreen {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 10;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: var(--transition);
+    backdrop-filter: blur(10px);
+}
+
+.btn-fullscreen:hover {
+    background: rgba(0, 0, 0, 0.8);
+    transform: scale(1.05);
+}
+
+/* Ensure video placeholder has relative positioning */

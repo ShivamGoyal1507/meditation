@@ -211,8 +211,10 @@
                 <div class="video-container">
                     <h3>Meditation Session</h3>
                     <div class="video-placeholder">
-                        <video id="webcam" autoplay playsinline></video>
-                        <i class="fas fa-video" id="video-icon"></i>
+                        <video id="webcam" autoplay muted playsinline></video>
+                        <button class="btn-fullscreen" id="fullscreen-btn" title="Toggle Fullscreen">
+                            <i class="fas fa-expand"></i>
+                        </button>
                     </div>
 
                     <div class="status-container">
@@ -246,7 +248,7 @@
                             <i class="fas fa-pause"></i> Pause
                         </button>
                         <button class="btn btn-secondary" id="stop-btn">
-                            <i class="fas fa-stop"></i> Stop
+                            <i class="fas fa-stop"></i> End Session
                         </button>
                         <button class="btn" id="end-btn" data-page="summary">
                             <i class="fas fa-chart-bar"></i> Summary

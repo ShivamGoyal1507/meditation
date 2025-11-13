@@ -1721,3 +1721,114 @@ document.addEventListener('DOMContentLoaded', function() {
         initializeMeditationPage();
     });
 });
+
+// Webcam and Fullscreen functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // DOM Elements
+    const webcamVideo = document.getElementById('webcam');
+    const fullscreenBtn = document.getElementById('fullscreen-btn');
+    const videoPlaceholder = document.querySelector('.video-placeholder');
+    const statusValue = document.querySelector('.status-value');
+    
+    // Variables
+    let stream = null;
+    let isFullscreen = false;
+    
+    // Initialize webcam
+    async function initWebcam() {
+        try {
+            // Request webcam access
+            stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { 
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 },
+                    facingMode: 'user' 
+                }, 
+                audio: false 
+            });
+            
+            // Set video source
+            webcamVideo.srcObject = stream;
+            
+            // Update status
+            if (statusValue) {
+                statusValue.textContent = 'Active';
+                statusValue.className = 'status-value status-good';
+            }
+            
+            console.log('Webcam access granted');
+        } catch (error) {
+            console.error('Error accessing webcam:', error);
+            
+            // Update status
+            if (statusValue) {
+                statusValue.textContent = 'Error';
+                statusValue.className = 'status-value status-warning';
+            }
+            
+            // Show error message to user
+            alert('Unable to access webcam. Please check permissions and try again.');
+        }
+    }
+    
+    // Fullscreen functionality
+    function toggleFullscreen() {
+        if (!isFullscreen) {
+            // Enter fullscreen
+            if (videoPlaceholder.requestFullscreen) {
+                videoPlaceholder.requestFullscreen();
+            } else if (videoPlaceholder.webkitRequestFullscreen) {
+                videoPlaceholder.webkitRequestFullscreen();
+            } else if (videoPlaceholder.msRequestFullscreen) {
+                videoPlaceholder.msRequestFullscreen();
+            }
+            
+            // Update button icon
+            fullscreenBtn.innerHTML = '<i class="fas fa-compress"></i>';
+            isFullscreen = true;
+        } else {
+            // Exit fullscreen
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            } else if (document.msExitFullscreen) {
+                document.msExitFullscreen();
+            }
+            
+            // Update button icon
+            fullscreenBtn.innerHTML = '<i class="fas fa-expand"></i>';
+            isFullscreen = false;
+        }
+    }
+    
+    // Handle fullscreen change events
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('msfullscreenchange', handleFullscreenChange);
+    
+    function handleFullscreenChange() {
+        const isCurrentlyFullscreen = !!(document.fullscreenElement || 
+                                        document.webkitFullscreenElement || 
+                                        document.msFullscreenElement);
+        
+        if (!isCurrentlyFullscreen && isFullscreen) {
+            // User exited fullscreen via other means (e.g., ESC key)
+            fullscreenBtn.innerHTML = '<i class="fas fa-expand"></i>';
+            isFullscreen = false;
+        }
+    }
+    
+    // Event Listeners
+    fullscreenBtn.addEventListener('click', toggleFullscreen);
+    
+    // Initialize webcam when page loads
+    initWebcam();
+    
+    // Clean up when leaving page
+    window.addEventListener('beforeunload', function() {
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+        }
+    });
+});
