@@ -1722,7 +1722,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Webcam and Fullscreen functionality
+// Webcam and Fullscreen functionality with mobile support
 document.addEventListener('DOMContentLoaded', function() {
     // DOM Elements
     const webcamVideo = document.getElementById('webcam');
@@ -1733,6 +1733,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Variables
     let stream = null;
     let isFullscreen = false;
+    let isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     
     // Initialize webcam
     async function initWebcam() {
@@ -1740,15 +1741,22 @@ document.addEventListener('DOMContentLoaded', function() {
             // Request webcam access
             stream = await navigator.mediaDevices.getUserMedia({ 
                 video: { 
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 },
-                    facingMode: 'user' 
+                    width: { ideal: isMobile ? 640 : 1280 },
+                    height: { ideal: isMobile ? 480 : 720 },
+                    facingMode: 'user',
+                    frameRate: { ideal: isMobile ? 24 : 30 }
                 }, 
                 audio: false 
             });
             
             // Set video source
             webcamVideo.srcObject = stream;
+            
+            // Handle mobile video playback
+            if (isMobile) {
+                webcamVideo.setAttribute('playsinline', 'true');
+                webcamVideo.setAttribute('webkit-playsinline', 'true');
+            }
             
             // Update status
             if (statusValue) {
@@ -1771,56 +1779,143 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Fullscreen functionality
+    // Mobile-specific fullscreen function
+    function requestMobileFullscreen() {
+        // For iOS Safari and other mobile browsers
+        if (webcamVideo.webkitEnterFullscreen) {
+            webcamVideo.webkitEnterFullscreen();
+            isFullscreen = true;
+            fullscreenBtn.innerHTML = '<i class="fas fa-compress"></i>';
+        } else if (webcamVideo.requestFullscreen) {
+            webcamVideo.requestFullscreen();
+            isFullscreen = true;
+            fullscreenBtn.innerHTML = '<i class="fas fa-compress"></i>';
+        } else {
+            // Fallback: make video as large as possible
+            videoPlaceholder.classList.add('mobile-fullscreen');
+            document.body.style.overflow = 'hidden';
+            isFullscreen = true;
+            fullscreenBtn.innerHTML = '<i class="fas fa-compress"></i>';
+        }
+    }
+    
+    // Exit mobile fullscreen
+    function exitMobileFullscreen() {
+        if (webcamVideo.webkitExitFullscreen) {
+            webcamVideo.webkitExitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+        }
+        
+        videoPlaceholder.classList.remove('mobile-fullscreen');
+        document.body.style.overflow = '';
+        isFullscreen = false;
+        fullscreenBtn.innerHTML = '<i class="fas fa-expand"></i>';
+    }
+    
+    // Desktop fullscreen function
+    function requestDesktopFullscreen() {
+        if (videoPlaceholder.requestFullscreen) {
+            videoPlaceholder.requestFullscreen();
+        } else if (videoPlaceholder.webkitRequestFullscreen) {
+            videoPlaceholder.webkitRequestFullscreen();
+        } else if (videoPlaceholder.msRequestFullscreen) {
+            videoPlaceholder.msRequestFullscreen();
+        } else if (videoPlaceholder.mozRequestFullScreen) {
+            videoPlaceholder.mozRequestFullScreen();
+        }
+        
+        fullscreenBtn.innerHTML = '<i class="fas fa-compress"></i>';
+        isFullscreen = true;
+    }
+    
+    // Exit desktop fullscreen
+    function exitDesktopFullscreen() {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) {
+            document.msExitFullscreen();
+        } else if (document.mozCancelFullScreen) {
+            document.mozCancelFullScreen();
+        }
+        
+        fullscreenBtn.innerHTML = '<i class="fas fa-expand"></i>';
+        isFullscreen = false;
+    }
+    
+    // Main fullscreen toggle function
     function toggleFullscreen() {
         if (!isFullscreen) {
             // Enter fullscreen
-            if (videoPlaceholder.requestFullscreen) {
-                videoPlaceholder.requestFullscreen();
-            } else if (videoPlaceholder.webkitRequestFullscreen) {
-                videoPlaceholder.webkitRequestFullscreen();
-            } else if (videoPlaceholder.msRequestFullscreen) {
-                videoPlaceholder.msRequestFullscreen();
+            if (isMobile) {
+                requestMobileFullscreen();
+            } else {
+                requestDesktopFullscreen();
             }
-            
-            // Update button icon
-            fullscreenBtn.innerHTML = '<i class="fas fa-compress"></i>';
-            isFullscreen = true;
         } else {
             // Exit fullscreen
-            if (document.exitFullscreen) {
-                document.exitFullscreen();
-            } else if (document.webkitExitFullscreen) {
-                document.webkitExitFullscreen();
-            } else if (document.msExitFullscreen) {
-                document.msExitFullscreen();
+            if (isMobile) {
+                exitMobileFullscreen();
+            } else {
+                exitDesktopFullscreen();
             }
-            
-            // Update button icon
-            fullscreenBtn.innerHTML = '<i class="fas fa-expand"></i>';
-            isFullscreen = false;
         }
     }
     
     // Handle fullscreen change events
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-    document.addEventListener('msfullscreenchange', handleFullscreenChange);
-    
     function handleFullscreenChange() {
         const isCurrentlyFullscreen = !!(document.fullscreenElement || 
                                         document.webkitFullscreenElement || 
-                                        document.msFullscreenElement);
+                                        document.msFullscreenElement ||
+                                        document.mozFullScreenElement);
         
         if (!isCurrentlyFullscreen && isFullscreen) {
             // User exited fullscreen via other means (e.g., ESC key)
             fullscreenBtn.innerHTML = '<i class="fas fa-expand"></i>';
             isFullscreen = false;
+            
+            // Reset mobile styles
+            if (isMobile) {
+                videoPlaceholder.classList.remove('mobile-fullscreen');
+                document.body.style.overflow = '';
+            }
         }
     }
     
-    // Event Listeners
+    // Event Listeners for fullscreen changes
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('msfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    
+    // iOS specific events
+    webcamVideo.addEventListener('webkitbeginfullscreen', function() {
+        isFullscreen = true;
+        fullscreenBtn.innerHTML = '<i class="fas fa-compress"></i>';
+    });
+    
+    webcamVideo.addEventListener('webkitendfullscreen', function() {
+        isFullscreen = false;
+        fullscreenBtn.innerHTML = '<i class="fas fa-expand"></i>';
+    });
+    
+    // Button event listener
     fullscreenBtn.addEventListener('click', toggleFullscreen);
+    
+    // Handle orientation changes on mobile
+    if (isMobile) {
+        window.addEventListener('orientationchange', function() {
+            // Small delay to allow orientation to complete
+            setTimeout(() => {
+                if (isFullscreen) {
+                    // Re-apply fullscreen styles after orientation change
+                    videoPlaceholder.classList.add('mobile-fullscreen');
+                }
+            }, 300);
+        });
+    }
     
     // Initialize webcam when page loads
     initWebcam();
@@ -1831,4 +1926,20 @@ document.addEventListener('DOMContentLoaded', function() {
             stream.getTracks().forEach(track => track.stop());
         }
     });
+    
+    // Optional: Add double-tap for mobile fullscreen
+    if (isMobile) {
+        let lastTap = 0;
+        videoPlaceholder.addEventListener('touchend', function(e) {
+            const currentTime = new Date().getTime();
+            const tapLength = currentTime - lastTap;
+            
+            if (tapLength < 500 && tapLength > 0) {
+                // Double tap detected
+                e.preventDefault();
+                toggleFullscreen();
+            }
+            lastTap = currentTime;
+        });
+    }
 });
