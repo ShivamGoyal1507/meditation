@@ -327,6 +327,9 @@ let timerInterval;
 let timerSeconds = 300; // 5 minutes default
 let originalTimerSeconds = 300; // Store the original timer value
 
+// Chart instances
+let confidenceChart, emotionChart;
+
 // Simple TTS queue (prevents overlapping utterances)
 const TTS = (() => {
     const q = [];
@@ -645,6 +648,42 @@ function stopBreathingCycle() {
     breathingIndicatorEl.textContent = "";
 }
 
+// Update meditation charts with real-time data
+function updateMeditationCharts(confidence, emotionStability) {
+    if (!confidenceChart || !emotionChart) return;
+    
+    const timestamp = new Date().toLocaleTimeString('en-US', { 
+        hour12: false,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+    
+    // Update confidence chart
+    confidenceChart.data.labels.push(timestamp);
+    confidenceChart.data.datasets[0].data.push(confidence);
+    
+    // Keep only last 20 data points for performance
+    if (confidenceChart.data.labels.length > 20) {
+        confidenceChart.data.labels.shift();
+        confidenceChart.data.datasets[0].data.shift();
+    }
+    
+    // Update emotion chart (convert emotion to stability score)
+    const stabilityScore = emotionStability === 'neutral' ? 1 : 0.5;
+    emotionChart.data.labels.push(timestamp);
+    emotionChart.data.datasets[0].data.push(stabilityScore);
+    
+    if (emotionChart.data.labels.length > 20) {
+        emotionChart.data.labels.shift();
+        emotionChart.data.datasets[0].data.shift();
+    }
+    
+    // Update both charts
+    confidenceChart.update('none');
+    emotionChart.update('none');
+}
+
 // Background Music Functions
 function initializeMusicControls() {
     // Set up music upload
@@ -907,19 +946,11 @@ function evaluateState() {
         currentPriority = 4; // Breathing guidance is the final priority
     }
 
-    // Provide guidance based on priority (with cooldowns and state change detection)
-    providePriorityGuidance(avgConf, eyesClosed, emotion);
-
-    // Update breathing status
-    setStatus(breathingStatusEl, breathingActive ? 'Active' : 'Inactive', breathingActive);
-
-    // Update last state for transitions
-    lastMudra = newMudraState;
-    lastEyesClosed = eyesClosed;
-    lastEmotion = emotion;
-    
-    // Collect session data for summary
+    // Update charts with current data
     if (isRunning && !isPaused) {
+        updateMeditationCharts(avgConf, emotion);
+        
+        // Collect session data for summary
         sessionData.mudraData.push(avgConf);
         sessionData.emotionData.push(emotion === 'neutral' ? 1 : 0.5);
         
@@ -936,6 +967,17 @@ function evaluateState() {
             sessionData.eyesOpenCount++;
         }
     }
+
+    // Provide guidance based on priority (with cooldowns and state change detection)
+    providePriorityGuidance(avgConf, eyesClosed, emotion);
+
+    // Update breathing status
+    setStatus(breathingStatusEl, breathingActive ? 'Active' : 'Inactive', breathingActive);
+
+    // Update last state for transitions
+    lastMudra = newMudraState;
+    lastEyesClosed = eyesClosed;
+    lastEmotion = emotion;
 }
 
 function setStatus(el, text, good=false) {
@@ -965,6 +1007,45 @@ async function startMediaPipe() {
         width: 640, height: 480
     });
     mpCamera.start();
+}
+
+// Helper function to calculate final session data
+function calculateAndStoreSessionData() {
+    // Calculate mudra accuracy
+    const mudraAccuracy = sessionData.totalDetectionCount > 0 ? 
+        Math.round((sessionData.mudraCorrectCount / sessionData.totalDetectionCount) * 100) : 0;
+    
+    // Calculate session duration
+    const sessionDuration = sessionData.sessionStartTime ? 
+        (new Date() - sessionData.sessionStartTime) / 1000 : 0;
+    
+    // Calculate focus time based on conditions met
+    const focusTime = Math.min(100, Math.round((sessionDuration / (originalTimerSeconds)) * 100));
+    
+    // Store final session data
+    sessionData.mudraAccuracy = mudraAccuracy;
+    sessionData.focusTime = focusTime;
+    sessionData.sessionDuration = sessionDuration;
+    
+    localStorage.setItem('meditationData', JSON.stringify(sessionData));
+}
+
+// Helper function to navigate to summary page
+function navigateToSummaryPage() {
+    // Hide all pages and show summary
+    document.querySelectorAll('.page').forEach(page => {
+        page.classList.remove('active');
+    });
+    document.getElementById('summary').classList.add('active');
+    
+    // Update nav links
+    document.querySelectorAll('.nav-links a').forEach(navLink => {
+        navLink.classList.remove('active');
+    });
+    document.querySelector('.nav-links a[data-page="summary"]').classList.add('active');
+    
+    // Initialize summary page with data
+    initializeSummaryPage();
 }
 
 // Controls: start / pause / stop
@@ -1054,17 +1135,46 @@ function pauseSession() {
 
 function stopSession() {
     if (!isRunning) return;
+    
+    // Stop all processes first
     isRunning = false; 
     isPaused = false;
-    pauseBtn.innerHTML = '<i class="fas fa-pause"></i>&nbsp;Pause';
     
     // Stop timer
     clearInterval(timerInterval);
     
-    // stop MediaPipe camera and release stream
-    try { if (mpCamera) { mpCamera.stop(); mpCamera = null; } } catch(e){}
-    try { if (hands) { hands.close(); hands = null; } } catch(e){}
-    try { if (faceMesh) { faceMesh.close(); faceMesh = null; } } catch(e){}
+    // Stop breathing cycle
+    stopBreathingCycle();
+    
+    // Stop background music
+    pauseBackgroundMusic();
+    
+    // Stop all voice commands
+    TTS.clear();
+    
+    // Stop camera and MediaPipe
+    try { 
+        if (mpCamera) { 
+            mpCamera.stop(); 
+            mpCamera = null; 
+        } 
+    } catch(e){}
+    
+    try { 
+        if (hands) { 
+            hands.close(); 
+            hands = null; 
+        } 
+    } catch(e){}
+    
+    try { 
+        if (faceMesh) { 
+            faceMesh.close(); 
+            faceMesh = null; 
+        } 
+    } catch(e){}
+    
+    // Stop video stream
     try {
         const stream = videoEl.srcObject;
         if (stream) {
@@ -1073,39 +1183,25 @@ function stopSession() {
         }
     } catch(e){}
     
+    // Reset UI
     setStatus(mudraStatusEl, 'Not Detected', false);
     setStatus(eyesStatusEl, 'Open', false);
     setStatus(emotionStatusEl, 'Neutral', false);
     setStatus(breathingStatusEl, 'Inactive', false);
     breathingIndicatorEl.textContent = "";
-    stopBreathingCycle();
-    TTS.clear(); // Stop all voice commands
+    pauseBtn.innerHTML = '<i class="fas fa-pause"></i>&nbsp;Pause';
     
+    // Calculate and store session data
+    calculateAndStoreSessionData();
+    
+    // Navigate to summary page
+    navigateToSummaryPage();
+    
+    // Announce session stop
     const stopMsg = getVoiceCommand('sessionStopped');
     TTS.enqueue(stopMsg);
-    pushVoiceHistory('Session stopped.');
-    
-    // Stop background music
-    pauseBackgroundMusic();
-    
-    // If timer was running, navigate to summary
-    if (sessionData.timerStarted) {
-        endMeditationSession();
-    }
+    pushVoiceHistory('Session stopped manually.');
 }
-
-// Wire up buttons
-startBtn.addEventListener('click', startSession);
-pauseBtn.addEventListener('click', pauseSession);
-stopBtn.addEventListener('click', stopSession);
-
-// Clean up on page unload
-window.addEventListener('beforeunload', () => {
-    try { TTS.clear(); } catch(e){}
-    try { if (mpCamera) mpCamera.stop(); } catch(e){}
-    try { if (videoEl && videoEl.srcObject) { videoEl.srcObject.getTracks().forEach(t=>t.stop()); } } catch(e){}
-    try { pauseBackgroundMusic(); } catch(e){}
-});
 
 // End meditation session
 function endMeditationSession() {
@@ -1124,37 +1220,14 @@ function endMeditationSession() {
     // Stop background music
     pauseBackgroundMusic();
     
-    // Stop camera and MediaPipe
+    // Calculate and store session data
+    calculateAndStoreSessionData();
+    
+    // Clean up meditation session
     cleanupMeditationSession();
     
-    // Calculate session statistics
-    const mudraAccuracy = sessionData.totalDetectionCount > 0 ? 
-        Math.round((sessionData.mudraCorrectCount / sessionData.totalDetectionCount) * 100) : 0;
-    
-    const totalSessionTime = (new Date() - sessionData.sessionStartTime) / 1000;
-    const focusTime = Math.round((totalSessionTime / (originalTimerSeconds)) * 100);
-    
-    // Store session data for summary page
-    sessionData.mudraAccuracy = mudraAccuracy;
-    sessionData.focusTime = Math.min(100, focusTime);
-    sessionData.sessionDuration = totalSessionTime;
-    
-    localStorage.setItem('meditationData', JSON.stringify(sessionData));
-    
     // Navigate to summary page
-    document.querySelectorAll('.page').forEach(page => {
-        page.classList.remove('active');
-    });
-    document.getElementById('summary').classList.add('active');
-    
-    // Update nav links
-    document.querySelectorAll('.nav-links a').forEach(navLink => {
-        navLink.classList.remove('active');
-    });
-    document.querySelector('.nav-links a[data-page="summary"]').classList.add('active');
-    
-    // Initialize summary page
-    initializeSummaryPage();
+    navigateToSummaryPage();
 }
 
 // Cleanup function for meditation session
@@ -1164,6 +1237,12 @@ function cleanupMeditationSession() {
     
     // Stop timer
     clearInterval(timerInterval);
+    
+    // Stop breathing cycle
+    stopBreathingCycle();
+    
+    // Stop background music
+    pauseBackgroundMusic();
     
     // Stop camera and MediaPipe
     try { 
@@ -1214,80 +1293,35 @@ function cleanupMeditationSession() {
     
     // Reset timer display
     updateTimerDisplay();
-}
-
-// Initialize Meditation Page
-function initializeMeditationPage() {
-    // Clean up any existing session first
-    cleanupMeditationSession();
     
-    // Load settings
-    const savedSettings = localStorage.getItem('meditationSettings');
-    if (savedSettings) {
-        const settings = JSON.parse(savedSettings);
-        timerSeconds = settings.sessionDuration * 60;
-        originalTimerSeconds = timerSeconds; // Store the original value
-        BREATHE_IN_DURATION = settings.breatheIn;
-        BREATHE_OUT_DURATION = settings.breatheOut;
-        BREATHING_CYCLE_DURATION = BREATHE_IN_DURATION + BREATHE_OUT_DURATION;
-        
-        // Update session parameters display
-        sessionParamsEl.textContent = `Duration: ${settings.sessionDuration} min | Breathing: ${settings.breatheIn}s in / ${settings.breatheOut}s out`;
+    // Clear charts data for fresh start
+    if (confidenceChart) {
+        confidenceChart.data.labels = [];
+        confidenceChart.data.datasets[0].data = [];
+        confidenceChart.update('none');
     }
     
-    // Reset session data
-    sessionData = {
-        mudraAccuracy: 0,
-        focusTime: 0,
-        mudraData: [],
-        emotionData: [],
-        sessionDuration: 0,
-        breathingPattern: `${BREATHE_IN_DURATION}s in / ${BREATHE_OUT_DURATION}s out`,
-        mudraCorrectCount: 0,
-        totalDetectionCount: 0,
-        eyesClosedCount: 0,
-        eyesOpenCount: 0,
-        sessionStartTime: new Date(),
-        timerStarted: false
-    };
-    
-    // Reset guidance state
-    mudraConfRolling = [];
-    lastMudra = false;
-    lastEyesClosed = false;
-    lastEmotion = 'neutral';
-    currentPriority = 1;
-    guidanceCooldowns = [0, 0, 0, 0];
-    lastGuidanceTime = 0;
-    mudraStateChanged = false;
-    emotionStateChanged = false;
-    eyesStateChanged = false;
-    lastMudraState = false;
-    lastEmotionState = 'neutral';
-    lastEyesState = false;
-    
-    // Update UI
-    document.querySelectorAll('.status-value').forEach(el => {
-        el.classList.add('status-warning');
-        el.classList.remove('status-good');
-    });
-    
-    // Clear voice history for fresh session
-    voiceHistoryEl.innerHTML = '';
-    
-    // Initialize charts
-    initializeMeditationCharts();
-    
-    // Initialize music controls
-    initializeMusicControls();
-    
-    // Reset timer display
-    updateTimerDisplay();
+    if (emotionChart) {
+        emotionChart.data.labels = [];
+        emotionChart.data.datasets[0].data = [];
+        emotionChart.update('none');
+    }
 }
 
-// Initialize meditation charts
-let confidenceChart, emotionChart;
+// Wire up buttons
+startBtn.addEventListener('click', startSession);
+pauseBtn.addEventListener('click', pauseSession);
+stopBtn.addEventListener('click', stopSession);
 
+// Clean up on page unload
+window.addEventListener('beforeunload', () => {
+    try { TTS.clear(); } catch(e){}
+    try { if (mpCamera) mpCamera.stop(); } catch(e){}
+    try { if (videoEl && videoEl.srcObject) { videoEl.srcObject.getTracks().forEach(t=>t.stop()); } } catch(e){}
+    try { pauseBackgroundMusic(); } catch(e){}
+});
+
+// Initialize meditation charts
 function initializeMeditationCharts() {
     // Confidence Chart
     const confidenceCtx = document.getElementById('confidenceChart').getContext('2d');
@@ -1386,6 +1420,75 @@ function initializeMeditationCharts() {
             }
         }
     });
+}
+
+// Initialize Meditation Page
+function initializeMeditationPage() {
+    // Clean up any existing session first
+    cleanupMeditationSession();
+    
+    // Load settings
+    const savedSettings = localStorage.getItem('meditationSettings');
+    if (savedSettings) {
+        const settings = JSON.parse(savedSettings);
+        timerSeconds = settings.sessionDuration * 60;
+        originalTimerSeconds = timerSeconds; // Store the original value
+        BREATHE_IN_DURATION = settings.breatheIn;
+        BREATHE_OUT_DURATION = settings.breatheOut;
+        BREATHING_CYCLE_DURATION = BREATHE_IN_DURATION + BREATHE_OUT_DURATION;
+        
+        // Update session parameters display
+        sessionParamsEl.textContent = `Duration: ${settings.sessionDuration} min | Breathing: ${settings.breatheIn}s in / ${settings.breatheOut}s out`;
+    }
+    
+    // Reset session data
+    sessionData = {
+        mudraAccuracy: 0,
+        focusTime: 0,
+        mudraData: [],
+        emotionData: [],
+        sessionDuration: 0,
+        breathingPattern: `${BREATHE_IN_DURATION}s in / ${BREATHE_OUT_DURATION}s out`,
+        mudraCorrectCount: 0,
+        totalDetectionCount: 0,
+        eyesClosedCount: 0,
+        eyesOpenCount: 0,
+        sessionStartTime: new Date(),
+        timerStarted: false
+    };
+    
+    // Reset guidance state
+    mudraConfRolling = [];
+    lastMudra = false;
+    lastEyesClosed = false;
+    lastEmotion = 'neutral';
+    currentPriority = 1;
+    guidanceCooldowns = [0, 0, 0, 0];
+    lastGuidanceTime = 0;
+    mudraStateChanged = false;
+    emotionStateChanged = false;
+    eyesStateChanged = false;
+    lastMudraState = false;
+    lastEmotionState = 'neutral';
+    lastEyesState = false;
+    
+    // Update UI
+    document.querySelectorAll('.status-value').forEach(el => {
+        el.classList.add('status-warning');
+        el.classList.remove('status-good');
+    });
+    
+    // Clear voice history for fresh session
+    voiceHistoryEl.innerHTML = '';
+    
+    // Initialize charts
+    initializeMeditationCharts();
+    
+    // Initialize music controls
+    initializeMusicControls();
+    
+    // Reset timer display
+    updateTimerDisplay();
 }
 
 // Initialize summary page
