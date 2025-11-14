@@ -115,9 +115,9 @@ function loadSettings() {
  ****************************************************************/
 
 // Config / thresholds
-const MUDRA_CONF_THRESHOLD = 0.75;   // when we treat mudra as confirmed
+const MUDRA_CONF_THRESHOLD = 0.70;   // when we treat mudra as confirmed
 const MUDRA_LOSS_THRESHOLD = 0.40;   // when we treat mudra as lost
-const EYE_OPEN_THRESHOLD = 0.25;     // EAR threshold (<= closed)
+const EYE_OPEN_THRESHOLD = 0.20;     // EAR threshold (<= closed)
 const EMOTION_CHECK_INTERVAL_MS = 1200; // emotion evaluation cadence
 const ROLLING_CONF_LEN = 8;          // smoothing window for mudra confidence
 
